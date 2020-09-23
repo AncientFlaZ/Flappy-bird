@@ -7,7 +7,8 @@ def draw_base():
 def create_pipe():
     random_pipe_pos = random.choice(pipe_height)
     new_pipe = pipe_surface.get_rect(midtop= (325,random_pipe_pos))
-    return new_pipe
+    new_top_pipe = pipe_surface.get_rect(midbottom= (325,random_pipe_pos -150))
+    return new_pipe,new_top_pipe
 
 def move_pipes(pipes):
     for pipe in pipes:
@@ -17,7 +18,27 @@ def move_pipes(pipes):
 def draw_pipes(pipes):
     for pipe in pipes:
         screen.blit(pipe_surface,pipe)
+        if pipe.bottom >=512:
+            screen.blit(pipe_surface,pipe)
+        else:
+            flip_pipe = pygame.transform.flip(pipe_surface,False,True)
+            screen.blit(flip_pipe,pipe)
 
+
+def check_collision(pipes):
+    for pipe in pipes:
+        if bird_rect.colliderect(pipe):
+            game_over = pygame.image.load('assets/gameover.png')
+            return False
+    if bird_rect.top <=50 or bird_rect.bottom >=450:
+        game_over = pygame.image.load('assets/gameover.png')
+        return False
+    return True
+
+
+def rotate_bird(bird):
+    new_bird = pygame.transform.rotozoom(bird, -bird_movement * 5 ,1)
+    return new_bird
 
 
 pygame.init()
@@ -27,9 +48,9 @@ clock = pygame.time.Clock()
 
 gravity = 0.25
 bird_movement = 0
+game_active = True
 
 bg_surface = pygame.image.load('assets/background-day.png')
-#bg_surface = pygame.transform.scale2x(bg_surface)
 base_surface = pygame.image.load('assets/base.png')
 base_x_pos = 0
 
@@ -52,12 +73,17 @@ while True:
             pygame.quit()
             sys.exit()
         if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_SPACE:
+            if event.key == pygame.K_SPACE and game_active:
                 bird_movement = 0
                 bird_movement += 5
+            if event.key == pygame.K_SPACE and game_active == False:
+                game_active = True
+                pipe_list.clear()
+                bird_rect.center =(50,256)
+                bird_movement = 0
 
         if event.type == SPAWNPIPE:
-            pipe_list.append(create_pipe())
+            pipe_list.extend(create_pipe())
 
 
 
@@ -66,12 +92,16 @@ while True:
 
     screen.blit(bg_surface,(0,0))
 
-    bird_movement -= gravity
-    bird_rect.centery -= bird_movement
-    screen.blit(bird_surface,bird_rect)
 
-    pipe_list = move_pipes(pipe_list)
-    draw_pipes(pipe_list)
+    if game_active:
+     bird_movement -= gravity
+     rotated_bird = rotate_bird(bird_surface)
+     bird_rect.centery -= bird_movement
+     screen.blit(rotated_bird,bird_rect)
+     game_active =check_collision(pipe_list)
+
+     pipe_list = move_pipes(pipe_list)
+     draw_pipes(pipe_list)
 
 
     base_x_pos -=1
